@@ -32,6 +32,12 @@ class ScanCommand extends Command
                 10
             )
             ->addOption(
+                'dump',
+                'd',
+                InputOption::VALUE_REQUIRED,
+                'Dump output in this (csv) file'
+            )
+            ->addOption(
                 'output',
                 'o',
                 InputOption::VALUE_REQUIRED,
@@ -67,6 +73,26 @@ class ScanCommand extends Command
         $output->writeln('');
 
         $crawlLogger = new CrawlLogger($output);
+
+        if ($input->getOption('dump')) {
+            $dumpFile = $input->getOption('dump');
+
+            if (file_exists($dumpFile)) {
+                $helper = $this->getHelper('question');
+                $question = new ConfirmationQuestion(
+                    "The dump csv file `{$dumpFile}` already exists. Overwrite it? (y/n)",
+                    false
+                );
+
+                if (! $helper->ask($input, $output, $question)) {
+                    $output->writeln('Aborting...');
+
+                    return 0;
+                }
+            }
+
+            $crawlLogger->setDumpfile($input->getOption('dump'));
+        }
 
         if ($input->getOption('output')) {
             $outputFile = $input->getOption('output');

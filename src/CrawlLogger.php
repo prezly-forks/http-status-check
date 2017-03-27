@@ -26,6 +26,11 @@ class CrawlLogger implements CrawlObserver
     protected $outputFile = null;
 
     /**
+     * @var string|null
+     */
+    protected $dumpFile = null;
+
+    /**
      * @param \Symfony\Component\Console\Output\OutputInterface $consoleOutput
      */
     public function __construct(OutputInterface $consoleOutput)
@@ -85,21 +90,50 @@ class CrawlLogger implements CrawlObserver
 
         ksort($this->crawledUrls);
 
+        if ($this->dumpFile) {
+            $message_comma_separated = "Url,Status Code,Host,Scheme,Port,Path,Query";
+            file_put_contents($this->dumpFile, $message_comma_separated.PHP_EOL, FILE_APPEND);
+        }
+
         foreach ($this->crawledUrls as $statusCode => $urls) {
             $colorTag = $this->getColorTagForStatusCode($statusCode);
 
             $count = count($urls);
 
             if (is_numeric($statusCode)) {
-                $this->consoleOutput->writeln("<{$colorTag}>Crawled {$count} url(s) with statuscode {$statusCode}</{$colorTag}>");
+                $this->consoleOutput->writeln("<{$colorTag}>Crawled {$count} url(s) with status code {$statusCode}</{$colorTag}>");
             }
 
             if ($statusCode == static::UNRESPONSIVE_HOST) {
                 $this->consoleOutput->writeln("<{$colorTag}>{$count} url(s) did have unresponsive host(s)</{$colorTag}>");
             }
+
+            /* @var $url Url */
+            foreach ($urls as $url) {
+                if ($this->dumpFile) {
+                    $message_comma_separated = implode(',',[
+                        $url->__toString(),
+                        $statusCode,
+                        $url->host,
+                        $url->scheme,
+                        $url->port,
+                        $url->path,
+                        $url->query,
+                    ]);
+
+                    //$this->consoleOutput->writeln($message_comma_separated);
+                    file_put_contents($this->dumpFile, $message_comma_separated.PHP_EOL, FILE_APPEND);
+                }
+            }
+
         }
 
         $this->consoleOutput->writeln('');
+
+        if ($this->dumpFile) {
+            $this->consoleOutput->writeln('');
+            $this->consoleOutput->writeln('Also wrote output to ' . $this->dumpFile);
+        }
     }
 
     protected function getColorTagForStatusCode(string $code): string
@@ -140,5 +174,15 @@ class CrawlLogger implements CrawlObserver
     public function setOutputFile($filename)
     {
         $this->outputFile = $filename;
+    }
+
+    /**
+     * Set the dump file (csv) to log all output to
+     *
+     * @param string $filename
+     */
+    public function setDumpFile($filename)
+    {
+        $this->dumpFile = $filename;
     }
 }
