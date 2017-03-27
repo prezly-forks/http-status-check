@@ -91,7 +91,7 @@ class CrawlLogger implements CrawlObserver
         ksort($this->crawledUrls);
 
         if ($this->dumpFile) {
-            $message_comma_separated = "Url,Status Code";
+            $message_comma_separated = "Url,Status Code,Host,Scheme,Port,Path,Query";
             file_put_contents($this->dumpFile, $message_comma_separated.PHP_EOL, FILE_APPEND);
         }
 
@@ -108,9 +108,20 @@ class CrawlLogger implements CrawlObserver
                 $this->consoleOutput->writeln("<{$colorTag}>{$count} url(s) did have unresponsive host(s)</{$colorTag}>");
             }
 
+            /* @var $url Url */
             foreach ($urls as $url) {
                 if ($this->dumpFile) {
-                    $message_comma_separated = "{$url},{$statusCode}";
+                    $message_comma_separated = implode(',',[
+                        $url->__toString(),
+                        $statusCode,
+                        $url->host,
+                        $url->scheme,
+                        $url->port,
+                        $url->path,
+                        $url->query,
+                    ]);
+
+                    //$this->consoleOutput->writeln($message_comma_separated);
                     file_put_contents($this->dumpFile, $message_comma_separated.PHP_EOL, FILE_APPEND);
                 }
             }
